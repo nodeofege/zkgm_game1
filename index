@@ -23,6 +23,7 @@
       top: 10px;
       left: 10px;
       font-size: 16px;
+      display: none;
     }
     #gameover {
       position: absolute;
@@ -42,12 +43,34 @@
       font-size: 14px;
       color: #8b949e;
     }
+    #buttons {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+    }
+    button {
+      background: #238636;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      font-size: 14px;
+      margin-left: 5px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    button:hover {
+      background: #2ea043;
+    }
   </style>
 </head>
 <body>
   <canvas id="game" width="400" height="600"></canvas>
   <div id="overlay">zkgm: 0<br/>Rank: Verifier<br/>Lives: 3</div>
-  <div id="gameover">Game Over<br/>Refresh to play again</div>
+  <div id="gameover">Game Over</div>
+  <div id="buttons">
+    <button id="startBtn">Start</button>
+    <button id="restartBtn" style="display:none;">Restart</button>
+  </div>
   <div id="bottommsg">How many zkgm did you catch today? Share your score with #zkgm on X.</div>
 
   <script>
@@ -55,6 +78,8 @@
     const ctx = canvas.getContext("2d");
     const overlay = document.getElementById("overlay");
     const gameoverText = document.getElementById("gameover");
+    const startBtn = document.getElementById("startBtn");
+    const restartBtn = document.getElementById("restartBtn");
 
     const whale = {
       x: 180,
@@ -64,13 +89,22 @@
       speed: 5
     };
 
-    let blocks = [];
-    let score = 0;
-    let lives = 3;
-    let speedMultiplier = 1;
-    let gameRunning = true;
+    let blocks, score, lives, speedMultiplier, gameRunning, keys;
 
-    let keys = {};
+    function resetGame() {
+      blocks = [];
+      score = 0;
+      lives = 3;
+      speedMultiplier = 1;
+      gameRunning = true;
+      keys = {};
+      whale.x = 180;
+      overlay.style.display = "block";
+      gameoverText.style.display = "none";
+      startBtn.style.display = "none";
+      restartBtn.style.display = "inline";
+      gameLoop();
+    }
 
     function getRank(score) {
       if (score >= 60) return "Maxi";
@@ -81,90 +115,3 @@
 
     function drawWhale() {
       ctx.fillStyle = "#3fb950";
-      ctx.fillRect(whale.x, whale.y, whale.width, whale.height);
-    }
-
-    function drawBlock(block) {
-      ctx.fillStyle = block.bad ? "#f85149" : "#58a6ff";
-      ctx.font = "12px monospace";
-      ctx.fillText(block.text, block.x, block.y + 10);
-    }
-
-    function updateBlocks() {
-      blocks.forEach(block => block.y += block.speed * speedMultiplier);
-      blocks.forEach((block, i) => {
-        if (block.y > canvas.height) {
-          if (!block.bad) lives--;
-          blocks.splice(i, 1);
-        }
-      });
-    }
-
-    function checkCatch() {
-      blocks.forEach((block, i) => {
-        if (
-          block.y + 10 >= whale.y &&
-          block.y <= whale.y + whale.height &&
-          block.x < whale.x + whale.width &&
-          block.x + 40 > whale.x
-        ) {
-          if (block.bad) score = Math.max(0, score - 1);
-          else score++;
-          blocks.splice(i, 1);
-        }
-      });
-    }
-
-    function spawnBlock() {
-      const isBad = Math.random() < 0.2;
-      blocks.push({
-        x: Math.random() * 360,
-        y: -10,
-        speed: 1 + Math.random(),
-        bad: isBad,
-        text: isBad ? "fud" : "zkgm"
-      });
-    }
-
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawWhale();
-      blocks.forEach(drawBlock);
-    }
-
-    function updateInput() {
-      if (keys["ArrowLeft"] || keys["a"]) whale.x = Math.max(0, whale.x - whale.speed);
-      if (keys["ArrowRight"] || keys["d"]) whale.x = Math.min(canvas.width - whale.width, whale.x + whale.speed);
-    }
-
-    function gameLoop() {
-      if (!gameRunning) return;
-      updateInput();
-      updateBlocks();
-      checkCatch();
-      draw();
-      overlay.innerHTML = `zkgm: ${score}<br/>Rank: ${getRank(score)}<br/>Lives: ${lives}`;
-
-      if (lives <= 0) {
-        gameRunning = false;
-        gameoverText.style.display = "block";
-      } else {
-        requestAnimationFrame(gameLoop);
-      }
-    }
-
-    document.addEventListener("keydown", (e) => keys[e.key] = true);
-    document.addEventListener("keyup", (e) => keys[e.key] = false);
-
-    setInterval(() => {
-      if (gameRunning) spawnBlock();
-    }, 1000);
-
-    setInterval(() => {
-      if (gameRunning && speedMultiplier < 2.5) speedMultiplier += 0.05;
-    }, 4000);
-
-    gameLoop();
-  </script>
-</body>
-</html>
