@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZKGM: Catch the Code</title>
+  <style>
+    body {
+      margin: 0;
+      background: #0d1117;
+      color: #f0f6fc;
+      font-family: monospace;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      margin: 0 auto;
+      background: #161b22;
+      border: 2px solid #58a6ff;
+    }
+    #overlay {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 16px;
+    }
+    #gameover {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 32px;
+      color: #f85149;
+      display: none;
+      text-align: center;
+    }
+    #bottommsg {
+      position: absolute;
+      bottom: 10px;
+      width: 100%;
+      text-align: center;
+      font-size: 14px;
+      color: #8b949e;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game" width="400" height="600"></canvas>
+  <div id="overlay">zkgm: 0<br/>Rank: Verifier<br/>Lives: 3</div>
+  <div id="gameover">Game Over<br/>Refresh to play again</div>
+  <div id="bottommsg">How many zkgm did you catch today? Share your score with #zkgm on X.</div>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const overlay = document.getElementById("overlay");
+    const gameoverText = document.getElementById("gameover");
+
+    const whale = {
+      x: 180,
+      y: 550,
+      width: 40,
+      height: 20,
+      speed: 5
+    };
+
+    let blocks = [];
+    let score = 0;
+    let lives = 3;
+    let speedMultiplier = 1;
+    let gameRunning = true;
+
+    let keys = {};
+
+    function getRank(score) {
+      if (score >= 60) return "Maxi";
+      if (score >= 30) return "OG Whale";
+      if (score >= 10) return "Goblin";
+      return "Verifier";
+    }
+
+    function drawWhale() {
+      ctx.fillStyle = "#3fb950";
+      ctx.fillRect(whale.x, whale.y, whale.width, whale.height);
+    }
+
+    function drawBlock(block) {
+      ctx.fillStyle = block.bad ? "#f85149" : "#58a6ff";
+      ctx.font = "12px monospace";
+      ctx.fillText(block.text, block.x, block.y + 10);
+    }
+
+    function updateBlocks() {
+      blocks.forEach(block => block.y += block.speed * speedMultiplier);
+      blocks.forEach((block, i) => {
+        if (block.y > canvas.height) {
+          if (!block.bad) lives--;
+          blocks.splice(i, 1);
+        }
+      });
+    }
+
+    function checkCatch() {
+      blocks.forEach((block, i) => {
+        if (
+          block.y + 10 >= whale.y &&
+          block.y <= whale.y + whale.height &&
+          block.x < whale.x + whale.width &&
+          block.x + 40 > whale.x
+        ) {
+          if (block.bad) score = Math.max(0, score - 1);
+          else score++;
+          blocks.splice(i, 1);
+        }
+      });
+    }
+
+    function spawnBlock() {
+      const isBad = Math.random() < 0.2;
+      blocks.push({
+        x: Math.random() * 360,
+        y: -10,
+        speed: 1 + Math.random(),
+        bad: isBad,
+        text: isBad ? "fud" : "zkgm"
+      });
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawWhale();
+      blocks.forEach(drawBlock);
+    }
+
+    function updateInput() {
+      if (keys["ArrowLeft"] || keys["a"]) whale.x = Math.max(0, whale.x - whale.speed);
+      if (keys["ArrowRight"] || keys["d"]) whale.x = Math.min(canvas.width - whale.width, whale.x + whale.speed);
+    }
+
+    function gameLoop() {
+      if (!gameRunning) return;
+      updateInput();
+      updateBlocks();
+      checkCatch();
+      draw();
+      overlay.innerHTML = `zkgm: ${score}<br/>Rank: ${getRank(score)}<br/>Lives: ${lives}`;
+
+      if (lives <= 0) {
+        gameRunning = false;
+        gameoverText.style.display = "block";
+      } else {
+        requestAnimationFrame(gameLoop);
+      }
+    }
+
+    document.addEventListener("keydown", (e) => keys[e.key] = true);
+    document.addEventListener("keyup", (e) => keys[e.key] = false);
+
+    setInterval(() => {
+      if (gameRunning) spawnBlock();
+    }, 1000);
+
+    setInterval(() => {
+      if (gameRunning && speedMultiplier < 2.5) speedMultiplier += 0.05;
+    }, 4000);
+
+    gameLoop();
+  </script>
+</body>
+</html>
